@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, ScrollView, Image } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 const GRID_SIZE = 8;
 const TILE_SIZE = 64; // Square tile size before isometric transformation
@@ -47,12 +49,25 @@ const IsometricGrid = () => {
 };
 
 export default function CityScreen() {
-  // Mock buildings data - this will come from state management later
-  const buildings: Building[] = [
-    { id: 1, type: 'cathedral', x: 2, y: 2 },
-    { id: 2, type: 'cathedral', x: 4, y: 1 },
-    { id: 3, type: 'cathedral', x: 1, y: 4 },
-  ];
+  const [buildings, setBuildings] = useState<Building[]>([]);
+
+  const loadBuildings = async () => {
+    try {
+      const savedBuildings = await AsyncStorage.getItem('cityBuildings');
+      if (savedBuildings) {
+        setBuildings(JSON.parse(savedBuildings));
+      }
+    } catch (error) {
+      console.error('Failed to load buildings:', error);
+    }
+  };
+
+  // Load buildings when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadBuildings();
+    }, [])
+  );
 
   const renderGrid = () => {
     return <IsometricGrid />;

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 interface BuildingType {
   id: string;
   name: string;
-  icon: string;
+  asset: any;
   cost: number;
   description: string;
 }
@@ -14,31 +15,18 @@ const BUILDING_TYPES: BuildingType[] = [
   {
     id: 'cathedral',
     name: 'Cathedral',
-    icon: '⛪',
+    asset: require('@/assets/images/test-building.png'),
     cost: 10,
     description: 'A grand cathedral for your city'
   },
-  {
-    id: 'house',
-    name: 'House',
-    icon: '🏠',
-    cost: 5,
-    description: 'A cozy residential building'
-  },
-  {
-    id: 'office',
-    name: 'Office',
-    icon: '🏢',
-    cost: 15,
-    description: 'A modern office building'
-  },
-  {
-    id: 'tower',
-    name: 'Tower',
-    icon: '🗼',
-    cost: 25,
-    description: 'An impressive tower structure'
-  }
+  // TODO: Add more building types when we have more assets
+  // {
+  //   id: 'house',
+  //   name: 'House',
+  //   asset: require('@/assets/images/house.png'),
+  //   cost: 5,
+  //   description: 'A cozy residential building'
+  // },
 ];
 
 
@@ -74,7 +62,11 @@ const BuildingSelectionModal = ({
                 ]}
                 onPress={() => onSelect(building)}
               >
-                <Text style={styles.buildingOptionIcon}>{building.icon}</Text>
+                <Image 
+                  source={building.asset}
+                  style={styles.buildingOptionImage}
+                  resizeMode="contain"
+                />
                 <Text style={styles.buildingOptionName}>{building.name}</Text>
                 <Text style={styles.buildingOptionCost}>{building.cost} coins</Text>
               </TouchableOpacity>
@@ -105,16 +97,37 @@ export default function App() {
       }, 1000);
     } else if (seconds === 0) {
       setIsRunning(false);
-      // Timer completed! Add the selected building
+      // Timer completed! Add the selected building to persistent storage
+      addBuildingToCity(selectedBuilding);
       setBuildings(prev => [...prev, { id: Date.now(), type: selectedBuilding.id }]);
       setSeconds(5); // Reset to 5 seconds for testing
     }
     return () => clearInterval(interval);
   }, [isRunning, seconds]);
 
+  const addBuildingToCity = async (building: BuildingType) => {
+    try {
+      const existingBuildings = await AsyncStorage.getItem('cityBuildings');
+      const buildings = existingBuildings ? JSON.parse(existingBuildings) : [];
+      
+      const newBuilding = {
+        id: Date.now(),
+        type: building.id,
+        x: Math.floor(Math.random() * 6), // Random placement for now
+        y: Math.floor(Math.random() * 6),
+      };
+      
+      buildings.push(newBuilding);
+      await AsyncStorage.setItem('cityBuildings', JSON.stringify(buildings));
+    } catch (error) {
+      console.error('Failed to save building to city:', error);
+    }
+  };
+
   const startTimer = () => {
     setIsRunning(!isRunning); // Toggle start/pause
   };
+  
   const formatTime = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
@@ -132,7 +145,11 @@ export default function App() {
       >
         <Text style={styles.buildingSelectorLabel}>Reward:</Text>
         <View style={styles.selectedBuildingDisplay}>
-          <Text style={styles.selectedBuildingIcon}>{selectedBuilding.icon}</Text>
+          <Image 
+            source={selectedBuilding.asset}
+            style={styles.selectedBuildingImage}
+            resizeMode="contain"
+          />
           <Text style={styles.selectedBuildingName}>{selectedBuilding.name}</Text>
         </View>
         <Text style={styles.changeBuildingText}>Tap to change</Text>
@@ -188,8 +205,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
-  selectedBuildingIcon: {
-    fontSize: 24,
+  selectedBuildingImage: {
+    width: 32,
+    height: 32,
     marginRight: 8,
   },
   selectedBuildingName: {
@@ -280,8 +298,9 @@ const styles = StyleSheet.create({
     borderColor: '#4CAF50',
     backgroundColor: '#4a5a4a',
   },
-  buildingOptionIcon: {
-    fontSize: 32,
+  buildingOptionImage: {
+    width: 48,
+    height: 48,
     marginBottom: 8,
   },
   buildingOptionName: {
