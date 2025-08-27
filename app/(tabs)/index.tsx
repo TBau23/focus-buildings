@@ -1,93 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 
-interface BuildingType {
-  id: string;
-  name: string;
-  asset: any;
-  cost: number;
-  description: string;
-}
-
-const BUILDING_TYPES: BuildingType[] = [
-  {
-    id: 'cathedral',
-    name: 'Cathedral',
-    asset: require('@/assets/images/test-building.png'),
-    cost: 10,
-    description: 'A grand cathedral for your city'
-  },
-  // TODO: Add more building types when we have more assets
-  // {
-  //   id: 'house',
-  //   name: 'House',
-  //   asset: require('@/assets/images/house.png'),
-  //   cost: 5,
-  //   description: 'A cozy residential building'
-  // },
-];
-
-
-const BuildingSelectionModal = ({ 
-  visible, 
-  onClose, 
-  onSelect, 
-  selectedBuilding 
-}: { 
-  visible: boolean;
-  onClose: () => void;
-  onSelect: (building: BuildingType) => void;
-  selectedBuilding: BuildingType;
-}) => {
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Select Building Reward</Text>
-          
-          <View style={styles.buildingOptions}>
-            {BUILDING_TYPES.map((building) => (
-              <TouchableOpacity
-                key={building.id}
-                style={[
-                  styles.buildingOption,
-                  selectedBuilding.id === building.id && styles.selectedBuildingOption
-                ]}
-                onPress={() => onSelect(building)}
-              >
-                <Image 
-                  source={building.asset}
-                  style={styles.buildingOptionImage}
-                  resizeMode="contain"
-                />
-                <Text style={styles.buildingOptionName}>{building.name}</Text>
-                <Text style={styles.buildingOptionCost}>{building.cost} coins</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          <TouchableOpacity style={styles.modalCloseButton} onPress={onClose}>
-            <Text style={styles.modalCloseButtonText}>Done</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-};
 
 export default function App() {
   const [seconds, setSeconds] = useState(0.2 * 60); // 25 minutes
   const [isRunning, setIsRunning] = useState(false);
-  const [buildings, setBuildings] = useState<{ id: number; type: string }[]>([]);
-  const [selectedBuilding, setSelectedBuilding] = useState<BuildingType>(BUILDING_TYPES[0]);
-  const [showBuildingModal, setShowBuildingModal] = useState(false);
+
+
 
   useEffect(() => {
     let interval: number;
@@ -98,31 +18,11 @@ export default function App() {
     } else if (seconds === 0) {
       setIsRunning(false);
       // Timer completed! Add the selected building to persistent storage
-      addBuildingToCity(selectedBuilding);
-      setBuildings(prev => [...prev, { id: Date.now(), type: selectedBuilding.id }]);
       setSeconds(5); // Reset to 5 seconds for testing
     }
     return () => clearInterval(interval);
   }, [isRunning, seconds]);
 
-  const addBuildingToCity = async (building: BuildingType) => {
-    try {
-      const existingBuildings = await AsyncStorage.getItem('cityBuildings');
-      const buildings = existingBuildings ? JSON.parse(existingBuildings) : [];
-      
-      const newBuilding = {
-        id: Date.now(),
-        type: building.id,
-        x: Math.floor(Math.random() * 6), // Random placement for now
-        y: Math.floor(Math.random() * 6),
-      };
-      
-      buildings.push(newBuilding);
-      await AsyncStorage.setItem('cityBuildings', JSON.stringify(buildings));
-    } catch (error) {
-      console.error('Failed to save building to city:', error);
-    }
-  };
 
   const startTimer = () => {
     setIsRunning(!isRunning); // Toggle start/pause
@@ -138,22 +38,6 @@ export default function App() {
     <View style={styles.container}>
       <Text style={styles.timer}>{formatTime(seconds)}</Text>
       
-      {/* Building Selection */}
-      <TouchableOpacity 
-        style={styles.buildingSelector}
-        onPress={() => setShowBuildingModal(true)}
-      >
-        <Text style={styles.buildingSelectorLabel}>Reward:</Text>
-        <View style={styles.selectedBuildingDisplay}>
-          <Image 
-            source={selectedBuilding.asset}
-            style={styles.selectedBuildingImage}
-            resizeMode="contain"
-          />
-          <Text style={styles.selectedBuildingName}>{selectedBuilding.name}</Text>
-        </View>
-        <Text style={styles.changeBuildingText}>Tap to change</Text>
-      </TouchableOpacity>
       
       <TouchableOpacity style={styles.button} onPress={startTimer}>
         <Text style={styles.buttonText}>
@@ -161,15 +45,6 @@ export default function App() {
         </Text>
       </TouchableOpacity>
 
-      <BuildingSelectionModal
-        visible={showBuildingModal}
-        onClose={() => setShowBuildingModal(false)}
-        onSelect={(building) => {
-          setSelectedBuilding(building);
-          setShowBuildingModal(false);
-        }}
-        selectedBuilding={selectedBuilding}
-      />
     </View>
   );
 }
